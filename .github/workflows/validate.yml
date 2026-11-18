@@ -27,3 +27,14 @@ jobs:
           .venv/bin/python scripts/render_profiles.py --check
       - name: Verify with SHA-256-pinned client binaries
         run: .venv/bin/python scripts/validate_clients.py
+      - name: Purge jsDelivr cache
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        continue-on-error: true
+        run: |
+          bash scripts/purge_jsdelivr_cache.sh \
+            happ/ru-speede-vpn.json \
+            happ/happ-routing-link.txt \
+            mihomo/ru-speede-vpn.yaml \
+            mihomo/rules-only.yaml \
+            sing-box/ru-speede-vpn.json \
+            xray/ru-speede-vpn.json
