@@ -37,7 +37,7 @@ def mihomo(policy):
         tag: {
             "type": "http", "behavior": behavior, "format": "mrs",
             "url": url, "path": f"./rule-sets/{tag}.mrs", "interval": 86400,
-            "proxy": "DIRECT",
+            "proxy": "PROXY",
         }
         for tag, (behavior, url) in sources(policy, "mrs").items()
     }
@@ -55,31 +55,65 @@ def mihomo(policy):
             if entry == "geoip:private":
                 rules.append("GEOIP,PRIVATE,DIRECT,no-resolve")
             elif entry == "geoip:ru":
-                rules.append(f"RULE-SET,ip-ru,{target}")
+                rules.append(f"RULE-SET,ip-ru,{target},no-resolve")
             else:
                 network = ip_network(entry)
                 match = "IP-CIDR" if network.version == 4 else "IP-CIDR6"
                 rules.append(f"{match},{network},{target}")
     rules_only = {"rule-providers": providers, "rules": rules + ["MATCH,PROXY"]}
     full = {
-        "mixed-port": 7890, "allow-lan": False, "bind-address": "127.0.0.1",
+        "mixed-port": 7890, "allow-lan": True, "bind-address": "*",
+        "lan-allowed-ips": [
+            "127.0.0.0/8", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16",
+            "::1/128", "fc00::/7",
+        ],
+        "tcp-concurrent": True, "enable-process": True,
+        "find-process-mode": "always", "unified-delay": True,
         "mode": "rule", "log-level": "warning", "ipv6": True,
         # Mihomo validates the GeoIP DAT by loading CN before reading PRIVATE.
         "geodata-mode": True, "geox-url": {"geoip": MIHOMO_GEOIP},
         "hosts": policy["DnsHosts"],
         "dns": {
             "enable": True, "enhanced-mode": "redir-host", "use-hosts": True,
+            "use-system-hosts": True, "listen": "0.0.0.0:53",
+            "respect-rules": True, "cache-algorithm": "arc",
             "ipv6": True, "default-nameserver": [policy["DomesticDNSIP"]],
             "proxy-server-nameserver": [DOMESTIC_DOH + "#DIRECT"],
             "nameserver": [REMOTE_DOH + "#PROXY"],
             "direct-nameserver": [DOMESTIC_DOH + "#DIRECT"],
         },
+        "sniffer": {
+            "enable": True, "force-dns-mapping": True, "parse-pure-ip": True,
+            "override-destination": False,
+            "sniff": {
+                "HTTP": {"ports": [80, "8080-8880"]},
+                "TLS": {"ports": [443, 8443]},
+                "QUIC": {"ports": [443, 8443]},
+            },
+        },
+        "tun": {
+            "enable": True, "stack": "mips", "auto-route": True,
+            "auto-detect-interface": True, "dns-hijack": ["any:53", "tcp://any:53"],
+            "strict-route": True,
+        },
         "proxies": [
-            {"name": "LOCAL-SOCKS", "type": "socks5", "server": "127.0.0.1",
-             "port": 1081, "udp": True},
+            {"name": "DNS-OUT", "type": "dns"},
+            {
+                "name": "GER", "type": "vless", "server": "server.example.com",
+                "port": 443, "network": "tcp", "udp": True, "uuid": "uuid",
+                "packet-encoding": "xudp", "tls": True, "servername": "www.example.com",
+                "reality-opts": {
+                    "public-key": "pubkey", "short-id": "", "support-x25519mlkem768": True,
+                },
+                "client-fingerprint": "chrome",
+            },
         ],
-        "proxy-groups": [{"name": "PROXY", "type": "select", "proxies": ["LOCAL-SOCKS"]}],
-        **rules_only,
+        "proxy-groups": [{
+            "name": "PROXY", "type": "select", "url": "https://www.gstatic.com/generate_204",
+            "interval": 300, "timeout": 5000, "max-failed-times": 3, "proxies": ["GER"],
+        }],
+        "rule-providers": providers,
+        "rules": ["DST-PORT,53,DNS-OUT", *rules_only["rules"]],
     }
     return full, rules_only
 

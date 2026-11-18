@@ -1,7 +1,18 @@
 # Сгенерировано scripts/render_profiles.py из шаблона Happ.
 mixed-port: 7890
-allow-lan: false
-bind-address: 127.0.0.1
+allow-lan: true
+bind-address: '*'
+lan-allowed-ips:
+- 127.0.0.0/8
+- 10.0.0.0/8
+- 172.16.0.0/12
+- 192.168.0.0/16
+- ::1/128
+- fc00::/7
+tcp-concurrent: true
+enable-process: true
+find-process-mode: always
+unified-delay: true
 mode: rule
 log-level: warning
 ipv6: true
@@ -15,6 +26,10 @@ dns:
   enable: true
   enhanced-mode: redir-host
   use-hosts: true
+  use-system-hosts: true
+  listen: 0.0.0.0:53
+  respect-rules: true
+  cache-algorithm: arc
   ipv6: true
   default-nameserver:
   - 77.88.8.8
@@ -24,17 +39,60 @@ dns:
   - https://dns.google/dns-query#PROXY
   direct-nameserver:
   - https://common.dot.dns.yandex.net/dns-query#DIRECT
+sniffer:
+  enable: true
+  force-dns-mapping: true
+  parse-pure-ip: true
+  override-destination: false
+  sniff:
+    HTTP:
+      ports:
+      - 80
+      - 8080-8880
+    TLS:
+      ports:
+      - 443
+      - 8443
+    QUIC:
+      ports:
+      - 443
+      - 8443
+tun:
+  enable: true
+  stack: mips
+  auto-route: true
+  auto-detect-interface: true
+  dns-hijack:
+  - any:53
+  - tcp://any:53
+  strict-route: true
 proxies:
-- name: LOCAL-SOCKS
-  type: socks5
-  server: 127.0.0.1
-  port: 1081
+- name: DNS-OUT
+  type: dns
+- name: GER
+  type: vless
+  server: server.example.com
+  port: 443
+  network: tcp
   udp: true
+  uuid: uuid
+  packet-encoding: xudp
+  tls: true
+  servername: www.example.com
+  reality-opts:
+    public-key: pubkey
+    short-id: ''
+    support-x25519mlkem768: true
+  client-fingerprint: chrome
 proxy-groups:
 - name: PROXY
   type: select
+  url: https://www.gstatic.com/generate_204
+  interval: 300
+  timeout: 5000
+  max-failed-times: 3
   proxies:
-  - LOCAL-SOCKS
+  - GER
 rule-providers:
   site-block:
     type: http
@@ -43,7 +101,7 @@ rule-providers:
     url: https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_BLOCK.mrs
     path: ./rule-sets/site-block.mrs
     interval: 86400
-    proxy: DIRECT
+    proxy: PROXY
   site-win-spy:
     type: http
     behavior: domain
@@ -51,7 +109,7 @@ rule-providers:
     url: https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_WIN-SPY.mrs
     path: ./rule-sets/site-win-spy.mrs
     interval: 86400
-    proxy: DIRECT
+    proxy: PROXY
   site-google-play:
     type: http
     behavior: domain
@@ -59,7 +117,7 @@ rule-providers:
     url: https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_GOOGLE-PLAY.mrs
     path: ./rule-sets/site-google-play.mrs
     interval: 86400
-    proxy: DIRECT
+    proxy: PROXY
   site-github:
     type: http
     behavior: domain
@@ -67,7 +125,7 @@ rule-providers:
     url: https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_GITHUB.mrs
     path: ./rule-sets/site-github.mrs
     interval: 86400
-    proxy: DIRECT
+    proxy: PROXY
   site-twitch-ads:
     type: http
     behavior: domain
@@ -75,7 +133,7 @@ rule-providers:
     url: https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_TWITCH-ADS.mrs
     path: ./rule-sets/site-twitch-ads.mrs
     interval: 86400
-    proxy: DIRECT
+    proxy: PROXY
   site-youtube:
     type: http
     behavior: domain
@@ -83,7 +141,7 @@ rule-providers:
     url: https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_YOUTUBE.mrs
     path: ./rule-sets/site-youtube.mrs
     interval: 86400
-    proxy: DIRECT
+    proxy: PROXY
   site-telegram:
     type: http
     behavior: domain
@@ -91,7 +149,7 @@ rule-providers:
     url: https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_TELEGRAM.mrs
     path: ./rule-sets/site-telegram.mrs
     interval: 86400
-    proxy: DIRECT
+    proxy: PROXY
   site-ru:
     type: http
     behavior: domain
@@ -99,7 +157,7 @@ rule-providers:
     url: https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_RU.mrs
     path: ./rule-sets/site-ru.mrs
     interval: 86400
-    proxy: DIRECT
+    proxy: PROXY
   site-microsoft:
     type: http
     behavior: domain
@@ -107,7 +165,7 @@ rule-providers:
     url: https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_MICROSOFT.mrs
     path: ./rule-sets/site-microsoft.mrs
     interval: 86400
-    proxy: DIRECT
+    proxy: PROXY
   site-apple:
     type: http
     behavior: domain
@@ -115,7 +173,7 @@ rule-providers:
     url: https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_APPLE.mrs
     path: ./rule-sets/site-apple.mrs
     interval: 86400
-    proxy: DIRECT
+    proxy: PROXY
   site-epicgames:
     type: http
     behavior: domain
@@ -123,7 +181,7 @@ rule-providers:
     url: https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_EPICGAMES.mrs
     path: ./rule-sets/site-epicgames.mrs
     interval: 86400
-    proxy: DIRECT
+    proxy: PROXY
   site-riot:
     type: http
     behavior: domain
@@ -131,7 +189,7 @@ rule-providers:
     url: https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_RIOT.mrs
     path: ./rule-sets/site-riot.mrs
     interval: 86400
-    proxy: DIRECT
+    proxy: PROXY
   site-escapefromtarkov:
     type: http
     behavior: domain
@@ -139,7 +197,7 @@ rule-providers:
     url: https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_ESCAPEFROMTARKOV.mrs
     path: ./rule-sets/site-escapefromtarkov.mrs
     interval: 86400
-    proxy: DIRECT
+    proxy: PROXY
   site-steam:
     type: http
     behavior: domain
@@ -147,7 +205,7 @@ rule-providers:
     url: https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_STEAM.mrs
     path: ./rule-sets/site-steam.mrs
     interval: 86400
-    proxy: DIRECT
+    proxy: PROXY
   site-twitch:
     type: http
     behavior: domain
@@ -155,7 +213,7 @@ rule-providers:
     url: https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_TWITCH.mrs
     path: ./rule-sets/site-twitch.mrs
     interval: 86400
-    proxy: DIRECT
+    proxy: PROXY
   site-pinterest:
     type: http
     behavior: domain
@@ -163,7 +221,7 @@ rule-providers:
     url: https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_PINTEREST.mrs
     path: ./rule-sets/site-pinterest.mrs
     interval: 86400
-    proxy: DIRECT
+    proxy: PROXY
   site-faceit:
     type: http
     behavior: domain
@@ -171,7 +229,7 @@ rule-providers:
     url: https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_FACEIT.mrs
     path: ./rule-sets/site-faceit.mrs
     interval: 86400
-    proxy: DIRECT
+    proxy: PROXY
   ip-ru:
     type: http
     behavior: ipcidr
@@ -179,8 +237,9 @@ rule-providers:
     url: https://raw.githubusercontent.com/SpeedeMiner/Geoip-ru-server/cdn/geoip_RU.mrs
     path: ./rule-sets/ip-ru.mrs
     interval: 86400
-    proxy: DIRECT
+    proxy: PROXY
 rules:
+- DST-PORT,53,DNS-OUT
 - RULE-SET,site-block,REJECT
 - RULE-SET,site-win-spy,REJECT
 - IP-CIDR,5.101.40.41/32,REJECT
@@ -219,5 +278,5 @@ rules:
 - RULE-SET,site-pinterest,DIRECT
 - RULE-SET,site-faceit,DIRECT
 - GEOIP,PRIVATE,DIRECT,no-resolve
-- RULE-SET,ip-ru,DIRECT
+- RULE-SET,ip-ru,DIRECT,no-resolve
 - MATCH,PROXY

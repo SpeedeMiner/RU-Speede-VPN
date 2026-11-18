@@ -9,21 +9,79 @@ POLICY = json.loads((ROOT / "happ/ru-speede-vpn.template.json").read_text())
 DISCORD = "discord-attachments-uploads-prd.storage.googleapis.com"
 
 
+def load_mihomo(name="ru-speede-vpn.yaml"):
+    return yaml.safe_load((ROOT / "mihomo" / name).read_text(encoding="utf-8"))
+
+
 def test_mihomo_config_reuses_the_same_order_and_providers():
-    part = yaml.safe_load((ROOT / "mihomo/rules-only.yaml").read_text())
-    full = yaml.safe_load((ROOT / "mihomo/ru-speede-vpn.yaml").read_text())
-    assert all(full[key] == value for key, value in part.items())
-    rules = full["rules"]
+    part = load_mihomo("rules-only.yaml")
+    full = load_mihomo()
+    dns_rule, *rules = full["rules"]
+    assert dns_rule == "DST-PORT,53,DNS-OUT"
+    assert part == {"rule-providers": full["rule-providers"], "rules": rules}
     assert rules.index("RULE-SET,site-block,REJECT") < rules.index(f"DOMAIN,{DISCORD},PROXY")
     assert rules.index("DOMAIN-SUFFIX,4pda.to,PROXY") < rules.index("RULE-SET,site-ru,DIRECT")
     assert "GEOIP,PRIVATE,DIRECT,no-resolve" in rules
+    assert rules[-2] == "RULE-SET,ip-ru,DIRECT,no-resolve"
     assert rules[-1] == "MATCH,PROXY"
     assert full["hosts"] == POLICY["DnsHosts"]
     assert full["rule-providers"]["ip-ru"]["behavior"] == "ipcidr"
     for name, provider in full["rule-providers"].items():
+        assert provider["proxy"] == "PROXY"
         if name.startswith("site-"):
             assert provider["behavior"] == "domain"
             assert provider["url"].endswith(f"/geosite_{name[5:].upper()}.mrs")
+
+
+def test_mihomo_lan_network_and_process_settings():
+    config = load_mihomo()
+    assert config["bind-address"] == "*" and config["find-process-mode"] == "always"
+    assert all(config[key] is True for key in (
+        "allow-lan", "tcp-concurrent", "enable-process", "unified-delay"
+    ))
+    assert config["lan-allowed-ips"] == [
+        "127.0.0.0/8", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "::1/128", "fc00::/7",
+    ]
+
+
+def test_mihomo_dns_sniffer_and_tun():
+    config = load_mihomo()
+    dns = config["dns"]
+    assert dns["listen"] == "0.0.0.0:53" and dns["cache-algorithm"] == "arc"
+    assert all(dns[key] is True for key in ("enable", "respect-rules", "use-system-hosts"))
+    assert dns["proxy-server-nameserver"]
+    assert config["sniffer"] == {
+        "enable": True, "force-dns-mapping": True, "parse-pure-ip": True,
+        "override-destination": False,
+        "sniff": {
+            "HTTP": {"ports": [80, "8080-8880"]},
+            "TLS": {"ports": [443, 8443]},
+            "QUIC": {"ports": [443, 8443]},
+        },
+    }
+    assert config["tun"] == {
+        "enable": True, "stack": "mips", "auto-route": True,
+        "auto-detect-interface": True, "dns-hijack": ["any:53", "tcp://any:53"],
+        "strict-route": True,
+    }
+
+
+def test_mihomo_dns_out_and_reality_template():
+    config = load_mihomo()
+    assert config["proxies"] == [
+        {"name": "DNS-OUT", "type": "dns"},
+        {
+            "name": "GER", "type": "vless", "server": "server.example.com",
+            "port": 443, "network": "tcp", "udp": True, "uuid": "uuid",
+            "packet-encoding": "xudp", "tls": True, "servername": "www.example.com",
+            "reality-opts": {"public-key": "pubkey", "short-id": "", "support-x25519mlkem768": True},
+            "client-fingerprint": "chrome",
+        },
+    ]
+    assert config["proxy-groups"] == [{
+        "name": "PROXY", "type": "select", "url": "https://www.gstatic.com/generate_204",
+        "interval": 300, "timeout": 5000, "max-failed-times": 3, "proxies": ["GER"],
+    }]
 
 
 def test_sing_box_dns_hosts_priority_and_rule_set_downloads():

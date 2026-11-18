@@ -1,4 +1,5 @@
 """Run genuine client config validators and verify upstream rule assets."""
+from base64 import urlsafe_b64encode
 from concurrent.futures import ThreadPoolExecutor
 import gzip
 from hashlib import file_digest
@@ -82,12 +83,24 @@ def main(work):
         for job in jobs:
             job.result()
 
-    # Test the shipped Mihomo config and the rules-only fragment in a minimal config.
-    fragment = {**mihomo_rules, "proxies": mihomo_full["proxies"],
+    # Fill only the published GER placeholders in a temporary copy. Use the
+    # RFC 7748 Alice public key and never open a TUN or contact a Reality server.
+    ger = next(proxy for proxy in mihomo_full["proxies"] if proxy["name"] == "GER")
+    if ger["uuid"] == "uuid":
+        ger["uuid"] = "00000000-0000-4000-8000-000000000001"
+    reality = ger["reality-opts"]
+    if reality["public-key"] == "pubkey":
+        public_key = bytes.fromhex("8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a")
+        reality["public-key"] = urlsafe_b64encode(public_key).rstrip(b"=").decode("ascii")
+    full_file = work / "mihomo-full.yaml"
+    full_file.write_text(yaml.safe_dump(mihomo_full), encoding="utf-8")
+
+    # Validate that the portable fragment does not require the DNS outbound.
+    fragment = {**mihomo_rules, "proxies": [ger],
                 "proxy-groups": mihomo_full["proxy-groups"], "geodata-mode": True}
     fragment_file = work / "mihomo-fragment.yaml"
     fragment_file.write_text(yaml.safe_dump(fragment), encoding="utf-8")
-    for file in (ROOT / "mihomo/ru-speede-vpn.yaml", fragment_file):
+    for file in (full_file, fragment_file):
         run(work, work / "mihomo", "-d", mihomo_home, "-f", file, "-t")
     for provider in providers.values():
         path = mihomo_home / provider["path"]
