@@ -84,26 +84,97 @@ def test_mihomo_dns_out_and_reality_template():
     }]
 
 
-def test_sing_box_dns_hosts_priority_and_rule_set_downloads():
-    config = json.loads((ROOT / "sing-box/ru-speede-vpn.json").read_text())
-    assert config["dns"]["servers"][0]["predefined"] == {
-        host: [ip] for host, ip in POLICY["DnsHosts"].items()
+def load_sing_box():
+    return json.loads((ROOT / "sing-box/ru-speede-vpn.json").read_text(encoding="utf-8"))
+
+
+def sing_site_tags(stage):
+    return [entry.replace("geosite:", "site-", 1) for entry in POLICY[stage + "Sites"]
+            if entry.startswith("geosite:")]
+
+
+def test_sing_box_order_and_rule_set_downloads():
+    route = load_sing_box()["route"]
+    assert route["final"] == "PROXY"
+    assert route["auto_detect_interface"] is True
+    assert route["default_domain_resolver"] == "dns-direct"
+    rule_sets = route["rule_set"]
+    assert len(rule_sets) == 19
+    expected_tags = {
+        *sing_site_tags("Block"), *sing_site_tags("Proxy"), *sing_site_tags("Direct"),
+        "ip-private", "ip-ru",
     }
-    route = config["route"]
-    assert route["final"] == "proxy"
-    assert route["default_domain_resolver"] == "domestic"
-    for item in route["rule_set"]:
-        assert (item["format"], item["download_detour"], item["update_interval"]) == (
-            "binary", "direct", "1d"
+    assert {item["tag"] for item in rule_sets} == expected_tags
+    for item in rule_sets:
+        assert (item["type"], item["format"], item["download_detour"], item["update_interval"]) == (
+            "remote", "binary", "PROXY", "1d"
         )
-    rules = route["rules"]
-    assert rules.index({"ip_cidr": [str(ip_network(ip)) for ip in POLICY["BlockIp"]],
-                        "action": "reject"}) < rules.index(
-        {"domain": [DISCORD], "action": "route", "outbound": "proxy"}
+        tag = item["tag"]
+        if tag.startswith("site-"):
+            asset = f"Geosite-ru-light/release/geosite_{tag[5:].upper()}.srs"
+        else:
+            asset = f"Geoip-ru-server/cdn/geoip_{tag[3:].upper()}.srs"
+        assert item["url"] == f"https://raw.githubusercontent.com/SpeedeMiner/{asset}"
+    block_ips = [str(ip_network(ip)) for ip in POLICY["BlockIp"]]
+    assert len(block_ips) == 7
+    assert route["rules"] == [
+        {"action": "sniff"},
+        {"protocol": "dns", "action": "hijack-dns"},
+        {"ip_is_private": True, "outbound": "DIRECT"},
+        {"rule_set": sing_site_tags("Block"), "action": "reject"},
+        {"ip_cidr": block_ips, "action": "reject"},
+        {"rule_set": sing_site_tags("Proxy"), "outbound": "PROXY"},
+        {"domain": [DISCORD], "domain_suffix": ["4pda.to"], "outbound": "PROXY"},
+        {"ip_cidr": POLICY["ProxyIp"], "outbound": "PROXY"},
+        {"rule_set": sing_site_tags("Direct"), "outbound": "DIRECT"},
+        {"domain_suffix": ["ru", "kz", "su", "by", "xn--p1ai"], "outbound": "DIRECT"},
+        {"rule_set": ["ip-private", "ip-ru"], "outbound": "DIRECT"},
+    ]
+
+
+def test_sing_box_https_dns_hosts_and_priority():
+    dns = load_sing_box()["dns"]
+    assert (dns["final"], dns["strategy"], dns["independent_cache"]) == (
+        "dns-proxy", "prefer_ipv4", True
     )
-    assert {"ip_cidr": POLICY["ProxyIp"], "action": "route", "outbound": "proxy"} in rules
-    assert {"domain_suffix": ["4pda.to"], "action": "route", "outbound": "proxy"} in rules
-    assert rules[-1] == {"rule_set": ["ip-ru"], "action": "route", "outbound": "direct"}
+    assert dns["servers"] == [
+        {"type": "https", "tag": "dns-proxy", "server": "8.8.8.8", "server_port": 443,
+         "path": "/dns-query", "detour": "PROXY",
+         "tls": {"enabled": True, "server_name": "dns.google"}},
+        {"type": "https", "tag": "dns-direct", "server": "77.88.8.8", "server_port": 443,
+         "path": "/dns-query", "tls": {"enabled": True, "server_name": "common.dot.dns.yandex.net"}},
+        {"type": "hosts", "tag": "dns-hosts", "predefined": POLICY["DnsHosts"]},
+    ]
+    assert dns["rules"] == [
+        {"domain": list(POLICY["DnsHosts"]), "action": "route", "server": "dns-hosts"},
+        {"rule_set": sing_site_tags("Block"), "action": "reject"},
+        {"rule_set": sing_site_tags("Direct"), "action": "route", "server": "dns-direct"},
+        {"domain_suffix": ["ru", "kz", "su", "by", "xn--p1ai"], "action": "route", "server": "dns-direct"},
+    ]
+
+
+def test_sing_box_tun_reality_selector_and_cache():
+    config = load_sing_box()
+    assert config["inbounds"] == [
+        {"type": "tun", "tag": "tun-in", "address": ["172.19.0.1/30", "fdfe:dcba:9876::1/126"],
+         "mtu": 9000, "auto_route": True, "strict_route": True, "stack": "mixed"},
+        {"type": "mixed", "tag": "mixed-in", "listen": "127.0.0.1", "listen_port": 7890},
+    ]
+    assert config["outbounds"] == [
+        {"type": "selector", "tag": "PROXY", "outbounds": ["GER", "AUTO"],
+         "default": "GER", "interrupt_exist_connections": True},
+        {"type": "urltest", "tag": "AUTO", "outbounds": ["GER"],
+         "url": "https://www.gstatic.com/generate_204", "interval": "5m", "tolerance": 50},
+        {"type": "vless", "tag": "GER", "server": "server.example.com", "server_port": 443,
+         "uuid": "00000000-0000-0000-0000-000000000000", "flow": "xtls-rprx-vision",
+         "packet_encoding": "xudp", "tls": {
+             "enabled": True, "server_name": "www.example.com",
+             "utls": {"enabled": True, "fingerprint": "chrome"},
+             "reality": {"enabled": True, "public_key": "REPLACE_WITH_PUBLIC_KEY", "short_id": ""},
+         }},
+        {"type": "direct", "tag": "DIRECT"},
+    ]
+    assert config["experimental"]["cache_file"] == {"enabled": True, "store_rdrc": True}
 
 
 def test_xray_drives_ip_fallback_without_a_catch_all():

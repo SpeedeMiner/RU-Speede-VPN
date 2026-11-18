@@ -17,6 +17,11 @@ from prepare_v2ray_geoip import make_compatible
 from render_profiles import GEOIP, GEOSITE
 from update_happ_profile import ROOT, format_json
 
+# RFC 7748 Alice public key for the local config checks, not credentials.
+TEST_REALITY_PUBLIC_KEY = urlsafe_b64encode(bytes.fromhex(
+    "8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a"
+)).rstrip(b"=").decode("ascii")
+
 
 def curl(url, path):
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -83,15 +88,13 @@ def main(work):
         for job in jobs:
             job.result()
 
-    # Fill only the published GER placeholders in a temporary copy. Use the
-    # RFC 7748 Alice public key and never open a TUN or contact a Reality server.
+    # Fill only the published GER placeholders in a temporary copy.
     ger = next(proxy for proxy in mihomo_full["proxies"] if proxy["name"] == "GER")
     if ger["uuid"] == "uuid":
         ger["uuid"] = "00000000-0000-4000-8000-000000000001"
     reality = ger["reality-opts"]
     if reality["public-key"] == "pubkey":
-        public_key = bytes.fromhex("8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a")
-        reality["public-key"] = urlsafe_b64encode(public_key).rstrip(b"=").decode("ascii")
+        reality["public-key"] = TEST_REALITY_PUBLIC_KEY
     full_file = work / "mihomo-full.yaml"
     full_file.write_text(yaml.safe_dump(mihomo_full), encoding="utf-8")
 
@@ -108,9 +111,15 @@ def main(work):
             path, work / f"{path.stem}.txt", quiet=True)
     print(f"Mihomo: decoded {len(providers)} MRS providers", flush=True)
 
+    ger = next(outbound for outbound in sing["outbounds"] if outbound["tag"] == "GER")
+    reality = ger["tls"]["reality"]
+    if reality["public_key"] == "REPLACE_WITH_PUBLIC_KEY":
+        reality["public_key"] = TEST_REALITY_PUBLIC_KEY
+    sing_file = work / "sing-box-test.json"
+    sing_file.write_text(format_json(sing), encoding="utf-8")
     for name in ("sing-box-1.12", "sing-box-1.13"):
         binary = work / name
-        run(work, binary, "check", "-c", ROOT / "sing-box/ru-speede-vpn.json")
+        run(work, binary, "check", "-c", sing_file)
         for ruleset in sing["route"]["rule_set"]:
             tag = ruleset["tag"]
             run(work, binary, "rule-set", "decompile", f"{tag}.srs",

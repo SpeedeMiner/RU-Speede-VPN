@@ -2,43 +2,35 @@
   "dns": {
     "servers": [
       {
-        "type": "hosts",
-        "tag": "hosts",
-        "predefined": {
-          "lkfl2.nalog.ru": [
-            "213.24.64.175"
-          ],
-          "lknpd.nalog.ru": [
-            "213.24.64.181"
-          ]
-        }
-      },
-      {
-        "type": "hosts",
-        "tag": "bootstrap",
-        "predefined": {
-          "dns.google": [
-            "8.8.8.8"
-          ],
-          "common.dot.dns.yandex.net": [
-            "77.88.8.8"
-          ]
+        "type": "https",
+        "tag": "dns-proxy",
+        "server": "8.8.8.8",
+        "server_port": 443,
+        "path": "/dns-query",
+        "detour": "PROXY",
+        "tls": {
+          "enabled": true,
+          "server_name": "dns.google"
         }
       },
       {
         "type": "https",
-        "tag": "remote",
-        "server": "dns.google",
+        "tag": "dns-direct",
+        "server": "77.88.8.8",
+        "server_port": 443,
         "path": "/dns-query",
-        "detour": "proxy",
-        "domain_resolver": "bootstrap"
+        "tls": {
+          "enabled": true,
+          "server_name": "common.dot.dns.yandex.net"
+        }
       },
       {
-        "type": "https",
-        "tag": "domestic",
-        "server": "common.dot.dns.yandex.net",
-        "path": "/dns-query",
-        "domain_resolver": "bootstrap"
+        "type": "hosts",
+        "tag": "dns-hosts",
+        "predefined": {
+          "lkfl2.nalog.ru": "213.24.64.175",
+          "lknpd.nalog.ru": "213.24.64.181"
+        }
       }
     ],
     "rules": [
@@ -48,160 +40,113 @@
           "lknpd.nalog.ru"
         ],
         "action": "route",
-        "server": "hosts"
+        "server": "dns-hosts"
       },
       {
         "rule_set": [
-          "site-block"
-        ],
-        "action": "reject"
-      },
-      {
-        "rule_set": [
+          "site-block",
           "site-win-spy"
         ],
         "action": "reject"
       },
       {
         "rule_set": [
-          "site-google-play"
-        ],
-        "action": "route",
-        "server": "remote"
-      },
-      {
-        "rule_set": [
-          "site-github"
-        ],
-        "action": "route",
-        "server": "remote"
-      },
-      {
-        "rule_set": [
-          "site-twitch-ads"
-        ],
-        "action": "route",
-        "server": "remote"
-      },
-      {
-        "rule_set": [
-          "site-youtube"
-        ],
-        "action": "route",
-        "server": "remote"
-      },
-      {
-        "rule_set": [
-          "site-telegram"
-        ],
-        "action": "route",
-        "server": "remote"
-      },
-      {
-        "domain": [
-          "discord-attachments-uploads-prd.storage.googleapis.com"
-        ],
-        "action": "route",
-        "server": "remote"
-      },
-      {
-        "domain_suffix": [
-          "4pda.to"
-        ],
-        "action": "route",
-        "server": "remote"
-      },
-      {
-        "rule_set": [
-          "site-ru"
-        ],
-        "action": "route",
-        "server": "domestic"
-      },
-      {
-        "rule_set": [
-          "site-microsoft"
-        ],
-        "action": "route",
-        "server": "domestic"
-      },
-      {
-        "rule_set": [
-          "site-apple"
-        ],
-        "action": "route",
-        "server": "domestic"
-      },
-      {
-        "rule_set": [
-          "site-epicgames"
-        ],
-        "action": "route",
-        "server": "domestic"
-      },
-      {
-        "rule_set": [
-          "site-riot"
-        ],
-        "action": "route",
-        "server": "domestic"
-      },
-      {
-        "rule_set": [
-          "site-escapefromtarkov"
-        ],
-        "action": "route",
-        "server": "domestic"
-      },
-      {
-        "rule_set": [
-          "site-steam"
-        ],
-        "action": "route",
-        "server": "domestic"
-      },
-      {
-        "rule_set": [
-          "site-twitch"
-        ],
-        "action": "route",
-        "server": "domestic"
-      },
-      {
-        "rule_set": [
-          "site-pinterest"
-        ],
-        "action": "route",
-        "server": "domestic"
-      },
-      {
-        "rule_set": [
+          "site-ru",
+          "site-microsoft",
+          "site-apple",
+          "site-epicgames",
+          "site-riot",
+          "site-escapefromtarkov",
+          "site-steam",
+          "site-twitch",
+          "site-pinterest",
           "site-faceit"
         ],
         "action": "route",
-        "server": "domestic"
+        "server": "dns-direct"
+      },
+      {
+        "domain_suffix": [
+          "ru",
+          "kz",
+          "su",
+          "by",
+          "xn--p1ai"
+        ],
+        "action": "route",
+        "server": "dns-direct"
       }
     ],
-    "final": "remote"
+    "final": "dns-proxy",
+    "strategy": "prefer_ipv4",
+    "independent_cache": true
   },
   "inbounds": [
+    {
+      "type": "tun",
+      "tag": "tun-in",
+      "address": [
+        "172.19.0.1/30",
+        "fdfe:dcba:9876::1/126"
+      ],
+      "mtu": 9000,
+      "auto_route": true,
+      "strict_route": true,
+      "stack": "mixed"
+    },
     {
       "type": "mixed",
       "tag": "mixed-in",
       "listen": "127.0.0.1",
-      "listen_port": 2080
+      "listen_port": 7890
     }
   ],
   "outbounds": [
     {
-      "type": "socks",
-      "tag": "proxy",
-      "server": "127.0.0.1",
-      "server_port": 1081
+      "type": "selector",
+      "tag": "PROXY",
+      "outbounds": [
+        "GER",
+        "AUTO"
+      ],
+      "default": "GER",
+      "interrupt_exist_connections": true
+    },
+    {
+      "type": "urltest",
+      "tag": "AUTO",
+      "outbounds": [
+        "GER"
+      ],
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": "5m",
+      "tolerance": 50
+    },
+    {
+      "type": "vless",
+      "tag": "GER",
+      "server": "server.example.com",
+      "server_port": 443,
+      "uuid": "00000000-0000-0000-0000-000000000000",
+      "flow": "xtls-rprx-vision",
+      "packet_encoding": "xudp",
+      "tls": {
+        "enabled": true,
+        "server_name": "www.example.com",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        },
+        "reality": {
+          "enabled": true,
+          "public_key": "REPLACE_WITH_PUBLIC_KEY",
+          "short_id": ""
+        }
+      }
     },
     {
       "type": "direct",
-      "tag": "direct"
+      "tag": "DIRECT"
     }
   ],
   "route": {
@@ -214,19 +159,15 @@
         "action": "hijack-dns"
       },
       {
-        "rule_set": [
-          "site-block"
-        ],
-        "action": "reject"
+        "ip_is_private": true,
+        "outbound": "DIRECT"
       },
       {
         "rule_set": [
+          "site-block",
           "site-win-spy"
         ],
         "action": "reject"
-      },
-      {
-        "action": "resolve"
       },
       {
         "ip_cidr": [
@@ -242,52 +183,22 @@
       },
       {
         "rule_set": [
-          "site-google-play"
-        ],
-        "action": "route",
-        "outbound": "proxy"
-      },
-      {
-        "rule_set": [
-          "site-github"
-        ],
-        "action": "route",
-        "outbound": "proxy"
-      },
-      {
-        "rule_set": [
-          "site-twitch-ads"
-        ],
-        "action": "route",
-        "outbound": "proxy"
-      },
-      {
-        "rule_set": [
-          "site-youtube"
-        ],
-        "action": "route",
-        "outbound": "proxy"
-      },
-      {
-        "rule_set": [
+          "site-google-play",
+          "site-github",
+          "site-twitch-ads",
+          "site-youtube",
           "site-telegram"
         ],
-        "action": "route",
-        "outbound": "proxy"
+        "outbound": "PROXY"
       },
       {
         "domain": [
           "discord-attachments-uploads-prd.storage.googleapis.com"
         ],
-        "action": "route",
-        "outbound": "proxy"
-      },
-      {
         "domain_suffix": [
           "4pda.to"
         ],
-        "action": "route",
-        "outbound": "proxy"
+        "outbound": "PROXY"
       },
       {
         "ip_cidr": [
@@ -303,90 +214,39 @@
           "143.244.45.177/32",
           "31.131.253.250/32"
         ],
-        "action": "route",
-        "outbound": "proxy"
+        "outbound": "PROXY"
       },
       {
         "rule_set": [
-          "site-ru"
-        ],
-        "action": "route",
-        "outbound": "direct"
-      },
-      {
-        "rule_set": [
-          "site-microsoft"
-        ],
-        "action": "route",
-        "outbound": "direct"
-      },
-      {
-        "rule_set": [
-          "site-apple"
-        ],
-        "action": "route",
-        "outbound": "direct"
-      },
-      {
-        "rule_set": [
-          "site-epicgames"
-        ],
-        "action": "route",
-        "outbound": "direct"
-      },
-      {
-        "rule_set": [
-          "site-riot"
-        ],
-        "action": "route",
-        "outbound": "direct"
-      },
-      {
-        "rule_set": [
-          "site-escapefromtarkov"
-        ],
-        "action": "route",
-        "outbound": "direct"
-      },
-      {
-        "rule_set": [
-          "site-steam"
-        ],
-        "action": "route",
-        "outbound": "direct"
-      },
-      {
-        "rule_set": [
-          "site-twitch"
-        ],
-        "action": "route",
-        "outbound": "direct"
-      },
-      {
-        "rule_set": [
-          "site-pinterest"
-        ],
-        "action": "route",
-        "outbound": "direct"
-      },
-      {
-        "rule_set": [
+          "site-ru",
+          "site-microsoft",
+          "site-apple",
+          "site-epicgames",
+          "site-riot",
+          "site-escapefromtarkov",
+          "site-steam",
+          "site-twitch",
+          "site-pinterest",
           "site-faceit"
         ],
-        "action": "route",
-        "outbound": "direct"
+        "outbound": "DIRECT"
       },
       {
-        "ip_is_private": true,
-        "action": "route",
-        "outbound": "direct"
+        "domain_suffix": [
+          "ru",
+          "kz",
+          "su",
+          "by",
+          "xn--p1ai"
+        ],
+        "outbound": "DIRECT"
       },
       {
         "rule_set": [
+          "ip-private",
           "ip-ru"
         ],
-        "action": "route",
-        "outbound": "direct"
+        "outbound": "DIRECT"
       }
     ],
     "rule_set": [
@@ -395,7 +255,7 @@
         "tag": "site-block",
         "format": "binary",
         "url": "https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_BLOCK.srs",
-        "download_detour": "direct",
+        "download_detour": "PROXY",
         "update_interval": "1d"
       },
       {
@@ -403,7 +263,7 @@
         "tag": "site-win-spy",
         "format": "binary",
         "url": "https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_WIN-SPY.srs",
-        "download_detour": "direct",
+        "download_detour": "PROXY",
         "update_interval": "1d"
       },
       {
@@ -411,7 +271,7 @@
         "tag": "site-google-play",
         "format": "binary",
         "url": "https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_GOOGLE-PLAY.srs",
-        "download_detour": "direct",
+        "download_detour": "PROXY",
         "update_interval": "1d"
       },
       {
@@ -419,7 +279,7 @@
         "tag": "site-github",
         "format": "binary",
         "url": "https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_GITHUB.srs",
-        "download_detour": "direct",
+        "download_detour": "PROXY",
         "update_interval": "1d"
       },
       {
@@ -427,7 +287,7 @@
         "tag": "site-twitch-ads",
         "format": "binary",
         "url": "https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_TWITCH-ADS.srs",
-        "download_detour": "direct",
+        "download_detour": "PROXY",
         "update_interval": "1d"
       },
       {
@@ -435,7 +295,7 @@
         "tag": "site-youtube",
         "format": "binary",
         "url": "https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_YOUTUBE.srs",
-        "download_detour": "direct",
+        "download_detour": "PROXY",
         "update_interval": "1d"
       },
       {
@@ -443,7 +303,7 @@
         "tag": "site-telegram",
         "format": "binary",
         "url": "https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_TELEGRAM.srs",
-        "download_detour": "direct",
+        "download_detour": "PROXY",
         "update_interval": "1d"
       },
       {
@@ -451,7 +311,7 @@
         "tag": "site-ru",
         "format": "binary",
         "url": "https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_RU.srs",
-        "download_detour": "direct",
+        "download_detour": "PROXY",
         "update_interval": "1d"
       },
       {
@@ -459,7 +319,7 @@
         "tag": "site-microsoft",
         "format": "binary",
         "url": "https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_MICROSOFT.srs",
-        "download_detour": "direct",
+        "download_detour": "PROXY",
         "update_interval": "1d"
       },
       {
@@ -467,7 +327,7 @@
         "tag": "site-apple",
         "format": "binary",
         "url": "https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_APPLE.srs",
-        "download_detour": "direct",
+        "download_detour": "PROXY",
         "update_interval": "1d"
       },
       {
@@ -475,7 +335,7 @@
         "tag": "site-epicgames",
         "format": "binary",
         "url": "https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_EPICGAMES.srs",
-        "download_detour": "direct",
+        "download_detour": "PROXY",
         "update_interval": "1d"
       },
       {
@@ -483,7 +343,7 @@
         "tag": "site-riot",
         "format": "binary",
         "url": "https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_RIOT.srs",
-        "download_detour": "direct",
+        "download_detour": "PROXY",
         "update_interval": "1d"
       },
       {
@@ -491,7 +351,7 @@
         "tag": "site-escapefromtarkov",
         "format": "binary",
         "url": "https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_ESCAPEFROMTARKOV.srs",
-        "download_detour": "direct",
+        "download_detour": "PROXY",
         "update_interval": "1d"
       },
       {
@@ -499,7 +359,7 @@
         "tag": "site-steam",
         "format": "binary",
         "url": "https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_STEAM.srs",
-        "download_detour": "direct",
+        "download_detour": "PROXY",
         "update_interval": "1d"
       },
       {
@@ -507,7 +367,7 @@
         "tag": "site-twitch",
         "format": "binary",
         "url": "https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_TWITCH.srs",
-        "download_detour": "direct",
+        "download_detour": "PROXY",
         "update_interval": "1d"
       },
       {
@@ -515,7 +375,7 @@
         "tag": "site-pinterest",
         "format": "binary",
         "url": "https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_PINTEREST.srs",
-        "download_detour": "direct",
+        "download_detour": "PROXY",
         "update_interval": "1d"
       },
       {
@@ -523,7 +383,7 @@
         "tag": "site-faceit",
         "format": "binary",
         "url": "https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_FACEIT.srs",
-        "download_detour": "direct",
+        "download_detour": "PROXY",
         "update_interval": "1d"
       },
       {
@@ -531,16 +391,26 @@
         "tag": "ip-ru",
         "format": "binary",
         "url": "https://raw.githubusercontent.com/SpeedeMiner/Geoip-ru-server/cdn/geoip_RU.srs",
-        "download_detour": "direct",
+        "download_detour": "PROXY",
+        "update_interval": "1d"
+      },
+      {
+        "type": "remote",
+        "tag": "ip-private",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/SpeedeMiner/Geoip-ru-server/cdn/geoip_PRIVATE.srs",
+        "download_detour": "PROXY",
         "update_interval": "1d"
       }
     ],
-    "final": "proxy",
-    "default_domain_resolver": "domestic"
+    "final": "PROXY",
+    "auto_detect_interface": true,
+    "default_domain_resolver": "dns-direct"
   },
   "experimental": {
     "cache_file": {
-      "enabled": true
+      "enabled": true,
+      "store_rdrc": true
     }
   }
 }

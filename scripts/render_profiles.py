@@ -118,60 +118,92 @@ def mihomo(policy):
     return full, rules_only
 
 
+def sing_site_matches(entries):
+    tags, domains = [], {}
+    for entry in entries:
+        kind, name = entry.split(":", 1)
+        if kind == "geosite":
+            tags.append(f"site-{name}")
+        else:
+            key = {"domain": "domain_suffix", "full": "domain"}[kind]
+            domains.setdefault(key, []).append(name)
+    if tags:
+        yield {"rule_set": tags}
+    if domains:
+        yield domains
+
+
 def sing_box(policy):
+    urls = {tag: url for tag, (_, url) in sources(policy, "srs").items()}
+    urls["ip-private"] = f"{GEOIP}/geoip_PRIVATE.srs"
     rule_sets = [
         {"type": "remote", "tag": tag, "format": "binary", "url": url,
-         "download_detour": "direct", "update_interval": "1d"}
-        for tag, (_, url) in sources(policy, "srs").items()
+         "download_detour": "PROXY", "update_interval": "1d"}
+        for tag, url in urls.items()
     ]
-    rules = [{"action": "sniff"}, {"protocol": "dns", "action": "hijack-dns"}]
-    dns_rules = [{"domain": list(policy["DnsHosts"]), "action": "route", "server": "hosts"}]
-    for stage in STAGES:
-        action = {"action": "reject"} if stage == "Block" else {
-            "action": "route", "outbound": stage.lower()
-        }
-        for entry in policy[stage + "Sites"]:
-            kind, name = entry.split(":", 1)
-            key = {"geosite": "rule_set", "domain": "domain_suffix", "full": "domain"}[kind]
-            value = [f"site-{name}" if kind == "geosite" else name]
-            rules.append({key: value, **action})
-            dns_action = {"action": "reject"} if stage == "Block" else {
-                "action": "route", "server": "domestic" if stage == "Direct" else "remote"
-            }
-            dns_rules.append({key: value, **dns_action})
-        if stage == "Block":
-            rules.append({"action": "resolve"})
-        addresses = policy[stage + "Ip"]
-        if addresses == ["geoip:private", "geoip:ru"]:
-            rules.extend([{"ip_is_private": True, **action}, {"rule_set": ["ip-ru"], **action}])
-        else:
-            rules.append({"ip_cidr": [str(ip_network(entry)) for entry in addresses], **action})
+    blocks, proxies, directs = (
+        list(sing_site_matches(policy[f"{stage}Sites"])) for stage in STAGES
+    )
+    direct_suffixes = {"domain_suffix": ["ru", "kz", "su", "by", "xn--p1ai"]}
+    dns_rules = [
+        {"domain": list(policy["DnsHosts"]), "action": "route", "server": "dns-hosts"},
+        *({**match, "action": "reject"} for match in blocks),
+        *({**match, "action": "route", "server": "dns-direct"}
+          for match in [*directs, direct_suffixes]),
+    ]
+    rules = [
+        {"action": "sniff"},
+        {"protocol": "dns", "action": "hijack-dns"},
+        {"ip_is_private": True, "outbound": "DIRECT"},
+        *({**match, "action": "reject"} for match in blocks),
+        {"ip_cidr": [str(ip_network(ip)) for ip in policy["BlockIp"]], "action": "reject"},
+        *({**match, "outbound": "PROXY"} for match in proxies),
+        {"ip_cidr": [str(ip_network(ip)) for ip in policy["ProxyIp"]], "outbound": "PROXY"},
+        *({**match, "outbound": "DIRECT"} for match in directs),
+        {**direct_suffixes, "outbound": "DIRECT"},
+        {"rule_set": ["ip-private", "ip-ru"], "outbound": "DIRECT"},
+    ]
     return {
         "dns": {
             "servers": [
-                {"type": "hosts", "tag": "hosts", "predefined": {
-                    domain: [ip] for domain, ip in policy["DnsHosts"].items()
-                }},
-                {"type": "hosts", "tag": "bootstrap", "predefined": {
-                    REMOTE_DOH_HOST: [policy["RemoteDNSIP"]],
-                    DOMESTIC_DOH_HOST: [policy["DomesticDNSIP"]],
-                }},
-                {"type": "https", "tag": "remote", "server": REMOTE_DOH_HOST,
-                 "path": "/dns-query", "detour": "proxy", "domain_resolver": "bootstrap"},
-                {"type": "https", "tag": "domestic", "server": DOMESTIC_DOH_HOST,
-                 "path": "/dns-query", "domain_resolver": "bootstrap"},
+                {"type": "https", "tag": "dns-proxy", "server": policy["RemoteDNSIP"],
+                 "server_port": 443, "path": "/dns-query", "detour": "PROXY",
+                 "tls": {"enabled": True, "server_name": REMOTE_DOH_HOST}},
+                {"type": "https", "tag": "dns-direct", "server": policy["DomesticDNSIP"],
+                 "server_port": 443, "path": "/dns-query",
+                 "tls": {"enabled": True, "server_name": DOMESTIC_DOH_HOST}},
+                {"type": "hosts", "tag": "dns-hosts", "predefined": policy["DnsHosts"]},
             ],
-            "rules": dns_rules, "final": "remote",
+            "rules": dns_rules, "final": "dns-proxy",
+            "strategy": "prefer_ipv4", "independent_cache": True,
         },
-        "inbounds": [{"type": "mixed", "tag": "mixed-in", "listen": "127.0.0.1",
-                      "listen_port": 2080}],
-        "outbounds": [
-            {"type": "socks", "tag": "proxy", "server": "127.0.0.1", "server_port": 1081},
-            {"type": "direct", "tag": "direct"},
+        "inbounds": [
+            {"type": "tun", "tag": "tun-in",
+             "address": ["172.19.0.1/30", "fdfe:dcba:9876::1/126"],
+             "mtu": 9000, "auto_route": True, "strict_route": True, "stack": "mixed"},
+            {"type": "mixed", "tag": "mixed-in", "listen": "127.0.0.1", "listen_port": 7890},
         ],
-        "route": {"rules": rules, "rule_set": rule_sets, "final": "proxy",
-                  "default_domain_resolver": "domestic"},
-        "experimental": {"cache_file": {"enabled": True}},
+        "outbounds": [
+            {"type": "selector", "tag": "PROXY", "outbounds": ["GER", "AUTO"],
+             "default": "GER", "interrupt_exist_connections": True},
+            {"type": "urltest", "tag": "AUTO", "outbounds": ["GER"],
+             "url": "https://www.gstatic.com/generate_204", "interval": "5m", "tolerance": 50},
+            {
+                "type": "vless", "tag": "GER", "server": "server.example.com", "server_port": 443,
+                "uuid": "00000000-0000-0000-0000-000000000000", "flow": "xtls-rprx-vision",
+                "packet_encoding": "xudp",
+                "tls": {
+                    "enabled": True, "server_name": "www.example.com",
+                    "utls": {"enabled": True, "fingerprint": "chrome"},
+                    "reality": {"enabled": True, "public_key": "REPLACE_WITH_PUBLIC_KEY",
+                                "short_id": ""},
+                },
+            },
+            {"type": "direct", "tag": "DIRECT"},
+        ],
+        "route": {"rules": rules, "rule_set": rule_sets, "final": "PROXY",
+                  "auto_detect_interface": True, "default_domain_resolver": "dns-direct"},
+        "experimental": {"cache_file": {"enabled": True, "store_rdrc": True}},
     }
 
 
