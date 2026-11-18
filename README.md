@@ -39,6 +39,74 @@ python3 scripts/prepare_v2ray_geoip.py geoip_RU.dat v2ray-assets/geoip_RU.dat
 V2RAY_LOCATION_ASSET="$PWD/v2ray-assets" v2ray run -c xray/ru-speede-vpn.json
 ```
 
+## Подключение в популярных клиентах (iOS / Android / Desktop)
+
+| Клиент | Платформы | Ядро | Какой профиль / базы использовать |
+| --- | --- | --- | --- |
+| Happ / Incy | iOS, Android, macOS, Windows | Xray | [Диплинк Happ][happ-link] или [JSON маршрутизации][happ-json]. Для Incy используйте его схему ссылки. |
+| Karing | iOS, Android, macOS, Windows | sing-box | [JSON sing-box][sing-box-json] для импорта узла или удалённые `.srs` для правил. |
+| Streisand | iOS, macOS (Apple Silicon) | Xray | [GeoSite DAT][geosite-dat], [GeoIP DAT][geoip-dat] и правила из [Xray JSON][xray-json]. `.srs` предназначены для режима sing-box, если он есть в вашей сборке. |
+| v2rayNG / v2rayN | v2rayNG — Android. v2rayN — Windows, Linux, macOS | Xray для этого профиля | [GeoSite DAT][geosite-dat], [GeoIP DAT][geoip-dat] и `routing.rules` из [Xray JSON][xray-json]. |
+| FlClash / Clash Verge Rev | Android (FlClash), Windows, macOS, Linux | Mihomo | [Полный YAML][mihomo-yaml] или [rules-only.yaml][mihomo-rules] для существующего профиля. |
+
+**Геобазы** — домены публикует [Geosite-ru-light (`release`)][geosite-release], IP-сети — [Geoip-ru-server (`cdn`)][geoip-cdn]. Профили задают маршрутизацию и не содержат вашего подключения к VPN.
+
+<details>
+<summary>Happ / Incy</summary>
+
+1. Добавьте своё VPN-подключение. В Happ скопируйте ссылку из [happ-routing-link.txt][happ-link] и импортируйте её в профили маршрутизации. Исходные настройки доступны в [JSON][happ-json].
+2. Для Incy замените в ссылке только начало `happ://` на `incy://`, чтобы получилась ссылка вида `incy://routing/add/<Base64>` с тем же Base64. Импортируйте полученную ссылку в Incy и выберите профиль маршрутизации. [Формат ссылок Incy](https://github.com/INCY-DEV/incy-docs/blob/main/ru/dev-docs/routing.md).
+
+</details>
+
+<details>
+<summary>Karing (iOS / Android / Desktop)</summary>
+
+1. Скачайте [sing-box/ru-speede-vpn.json][sing-box-json], заполните параметры своего VLESS Reality в `GER` и добавьте локальный файл через **Добавить профиль → Импорт файла профиля**. Выберите импортированный узел. Импорт формата sing-box не гарантирует перенос DNS, TUN и правил ядра в Karing, поэтому проверьте маршрутизацию отдельно. [Документация импорта Karing](https://karing.app/en/app-manual/add-profiles).
+2. Для собственных правил откройте **Настройки → Маршрутизация (Diversion) → Правила → Изменить → Пользовательские группы**. Создайте группы и добавьте в них элементы **Rule Set** с прямыми URL. Назначьте `BLOCK` для [geosite_BLOCK.srs][geosite-block-srs] и `DIRECT` для [geosite_RU.srs][geosite-ru-srs], [geoip_RU.srs][geoip-ru-srs] и [geoip_PRIVATE.srs][geoip-private-srs]. Сохраните и переподключитесь. [Редактор правил Karing](https://karing.app/en/tutorial/custom-diversion).
+3. Это базовый набор. Для полного набора категорий и явных исключений используйте `route.rule_set` и `route.rules` из [JSON sing-box][sing-box-json] как эталон при настройке групп.
+
+</details>
+
+<details>
+<summary>Streisand (iOS / macOS)</summary>
+
+1. **Xray.** Откройте **Настройки → Маршрутизация → Настройки → Геофайлы (Assets)**. Добавьте URL для [geosite_RU.dat][geosite-dat] и [geoip_RU.dat][geoip-dat], затем обновите ресурсы. Перенесите правила из массива `routing.rules` файла [Xray JSON][xray-json], сопоставив `block`, `proxy` и `direct` с действиями клиента. Если клиент не использует входящий тег `speede-dns`, правило для этого тега переносить не нужно. Включите маршрутизацию. [Пример добавления геофайлов](https://bolotov.dev/blog/2026/02/04/vpn-route).
+2. **sing-box.** Отдельный режим sing-box и импорт `.srs` не подтверждены для [официальной сборки Streisand](https://streisand.pages.dev/). Если ваша сборка явно предлагает этот режим, возьмите URL и теги из `route.rule_set` [JSON sing-box][sing-box-json] и добавьте удалённые `.srs` из [Geosite-ru-light][geosite-release] и [Geoip-ru-server][geoip-cdn]. Для обычной сборки используйте вариант Xray с DAT.
+
+</details>
+
+<details>
+<summary>v2rayNG (Android) / v2rayN (Windows / Linux / macOS)</summary>
+
+1. Выберите ядро Xray. В разделе **Файлы ресурсов (Asset files / Custom Geo files)** добавьте URL [geosite_RU.dat][geosite-dat] и [geoip_RU.dat][geoip-dat] как отдельные ресурсы и обновите их. Если версия клиента принимает только локальные файлы, скачайте и добавьте DAT вручную. Сохраните исходные имена файлов — на них ссылаются правила `ext:`. [Геоданные в v2rayNG](https://github.com/2dust/v2rayNG#geoip-and-geosite).
+2. В **Настройках маршрутизации** импортируйте массив `routing.rules` из [Xray JSON][xray-json] или перенесите правила вручную в том же порядке. Не импортируйте весь профиль в редактор правил. Если редактор не создаёт тег `speede-dns`, пропустите правило для него. Установите стратегию доменов `IPIfNonMatch`, сохраните и активируйте набор. [Формат массива правил v2rayN](https://github.com/2dust/v2rayN/wiki/Description-of-custom-routing-rules).
+
+</details>
+
+<details>
+<summary>FlClash / Clash Verge Rev (Android / Desktop)</summary>
+
+1. В **Профилях** добавьте [полный Mihomo YAML][mihomo-yaml] по URL либо скачайте файл и импортируйте его как локальный профиль. Заполните данные VLESS Reality в `GER` перед активацией. Для личных параметров удобнее локальная копия, чтобы обновление URL их не затёрло. [FlClash](https://github.com/chen08209/FlClash#usage) · [Clash Verge Rev](https://clashvergerev.com/en/guide).
+2. Для существующей подписки перенесите `rule-providers` и `rules` из [rules-only.yaml][mihomo-rules] в расширение **Merge** в Clash Verge Rev или в редактор профиля FlClash. Если используете **Script / Override** в FlClash, перенесите поля в скрипт как данные конфигурации. Сам YAML не является JavaScript. Проверьте, что есть группа `PROXY`, а `MATCH,PROXY` из фрагмента остаётся единственным завершающим правилом `MATCH`.
+
+</details>
+
+[happ-link]: https://raw.githubusercontent.com/SpeedeMiner/RU-Speede-VPN/main/happ/happ-routing-link.txt
+[happ-json]: https://cdn.jsdelivr.net/gh/SpeedeMiner/RU-Speede-VPN@main/happ/ru-speede-vpn.json
+[sing-box-json]: https://cdn.jsdelivr.net/gh/SpeedeMiner/RU-Speede-VPN@main/sing-box/ru-speede-vpn.json
+[xray-json]: https://cdn.jsdelivr.net/gh/SpeedeMiner/RU-Speede-VPN@main/xray/ru-speede-vpn.json
+[mihomo-yaml]: https://cdn.jsdelivr.net/gh/SpeedeMiner/RU-Speede-VPN@main/mihomo/ru-speede-vpn.yaml
+[mihomo-rules]: https://cdn.jsdelivr.net/gh/SpeedeMiner/RU-Speede-VPN@main/mihomo/rules-only.yaml
+[geosite-release]: https://github.com/SpeedeMiner/Geosite-ru-light/tree/release
+[geoip-cdn]: https://github.com/SpeedeMiner/Geoip-ru-server/tree/cdn
+[geosite-dat]: https://cdn.jsdelivr.net/gh/SpeedeMiner/Geosite-ru-light@release/geosite_RU.dat
+[geoip-dat]: https://cdn.jsdelivr.net/gh/SpeedeMiner/Geoip-ru-server@cdn/geoip_RU.dat
+[geosite-ru-srs]: https://cdn.jsdelivr.net/gh/SpeedeMiner/Geosite-ru-light@release/geosite_RU.srs
+[geosite-block-srs]: https://cdn.jsdelivr.net/gh/SpeedeMiner/Geosite-ru-light@release/geosite_BLOCK.srs
+[geoip-ru-srs]: https://cdn.jsdelivr.net/gh/SpeedeMiner/Geoip-ru-server@cdn/geoip_RU.srs
+[geoip-private-srs]: https://cdn.jsdelivr.net/gh/SpeedeMiner/Geoip-ru-server@cdn/geoip_PRIVATE.srs
+
 ## Как выбирается маршрут
 
 | Приоритет | Действие | Источник решения |
