@@ -16,6 +16,7 @@ REMOTE_DOH = f"https://{REMOTE_DOH_HOST}/dns-query"
 DOMESTIC_DOH = f"https://{DOMESTIC_DOH_HOST}/dns-query"
 STAGES = ("Block", "Proxy", "Direct")
 MIHOMO_TARGET = {"Block": "REJECT", "Proxy": "PROXY", "Direct": "DIRECT"}
+EXACT_DOMAINS = {"discord-attachments-uploads-prd.storage.googleapis.com"}
 
 
 def sources(policy, extension):
@@ -184,6 +185,18 @@ def xray(policy):
 
 
 def rendered(policy):
+    # Happ stores bare hostnames. Restore explicit matching modes only for the other clients.
+    policy = {
+        **policy,
+        **{
+            stage + "Sites": [
+                entry if entry.startswith("geosite:")
+                else f'{"full" if entry in EXACT_DOMAINS else "domain"}:{entry}'
+                for entry in policy[stage + "Sites"]
+            ]
+            for stage in STAGES
+        },
+    }
     full, rules = mihomo(policy)
     header = "# Сгенерировано scripts/render_profiles.py из шаблона Happ.\n"
     return {

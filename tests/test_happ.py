@@ -1,11 +1,32 @@
 import base64
 import json
+import re
 
 import pytest
 
 from scripts import update_happ_profile as happ
 
 NOW = 1794988800
+DOMAIN_LABEL = r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?"
+ALLOWED_SITE = re.compile(
+    rf"(?:geosite:[a-z0-9][a-z0-9_-]*|{DOMAIN_LABEL}(?:\.{DOMAIN_LABEL})+)",
+    re.IGNORECASE | re.ASCII,
+)
+
+
+@pytest.mark.parametrize("path", [happ.TEMPLATE, happ.PROFILE])
+@pytest.mark.parametrize("field", ["DirectSites", "ProxySites", "BlockSites"])
+def test_happ_site_rules_are_geosite_tags_or_bare_domains(path, field):
+    profile = json.loads((happ.ROOT / path).read_text(encoding="utf-8"))
+    for rule in profile[field]:
+        assert ALLOWED_SITE.fullmatch(rule), f"{path}: invalid {field} entry {rule!r}"
+
+
+def test_happ_proxy_domains_are_not_removed():
+    profile = json.loads((happ.ROOT / happ.PROFILE).read_text(encoding="utf-8"))
+    assert {"discord-attachments-uploads-prd.storage.googleapis.com", "4pda.to"} <= set(
+        profile["ProxySites"]
+    )
 
 
 @pytest.fixture

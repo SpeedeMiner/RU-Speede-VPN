@@ -38,8 +38,8 @@
     "geosite:twitch-ads",
     "geosite:youtube",
     "geosite:telegram",
-    "full:discord-attachments-uploads-prd.storage.googleapis.com",
-    "domain:4pda.to"
+    "discord-attachments-uploads-prd.storage.googleapis.com",
+    "4pda.to"
   ],
   "ProxyIp": [
     "162.254.192.0/21",
