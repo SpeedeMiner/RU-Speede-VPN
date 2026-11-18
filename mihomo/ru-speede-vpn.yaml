@@ -1,0 +1,223 @@
+# Сгенерировано scripts/render_profiles.py из шаблона Happ.
+mixed-port: 7890
+allow-lan: false
+bind-address: 127.0.0.1
+mode: rule
+log-level: warning
+ipv6: true
+geodata-mode: true
+geox-url:
+  geoip: https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.dat
+hosts:
+  lkfl2.nalog.ru: 213.24.64.175
+  lknpd.nalog.ru: 213.24.64.181
+dns:
+  enable: true
+  enhanced-mode: redir-host
+  use-hosts: true
+  ipv6: true
+  default-nameserver:
+  - 77.88.8.8
+  proxy-server-nameserver:
+  - https://common.dot.dns.yandex.net/dns-query#DIRECT
+  nameserver:
+  - https://dns.google/dns-query#PROXY
+  direct-nameserver:
+  - https://common.dot.dns.yandex.net/dns-query#DIRECT
+proxies:
+- name: LOCAL-SOCKS
+  type: socks5
+  server: 127.0.0.1
+  port: 1081
+  udp: true
+proxy-groups:
+- name: PROXY
+  type: select
+  proxies:
+  - LOCAL-SOCKS
+rule-providers:
+  site-block:
+    type: http
+    behavior: domain
+    format: mrs
+    url: https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_BLOCK.mrs
+    path: ./rule-sets/site-block.mrs
+    interval: 86400
+    proxy: DIRECT
+  site-win-spy:
+    type: http
+    behavior: domain
+    format: mrs
+    url: https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_WIN-SPY.mrs
+    path: ./rule-sets/site-win-spy.mrs
+    interval: 86400
+    proxy: DIRECT
+  site-google-play:
+    type: http
+    behavior: domain
+    format: mrs
+    url: https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_GOOGLE-PLAY.mrs
+    path: ./rule-sets/site-google-play.mrs
+    interval: 86400
+    proxy: DIRECT
+  site-github:
+    type: http
+    behavior: domain
+    format: mrs
+    url: https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_GITHUB.mrs
+    path: ./rule-sets/site-github.mrs
+    interval: 86400
+    proxy: DIRECT
+  site-twitch-ads:
+    type: http
+    behavior: domain
+    format: mrs
+    url: https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_TWITCH-ADS.mrs
+    path: ./rule-sets/site-twitch-ads.mrs
+    interval: 86400
+    proxy: DIRECT
+  site-youtube:
+    type: http
+    behavior: domain
+    format: mrs
+    url: https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_YOUTUBE.mrs
+    path: ./rule-sets/site-youtube.mrs
+    interval: 86400
+    proxy: DIRECT
+  site-telegram:
+    type: http
+    behavior: domain
+    format: mrs
+    url: https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_TELEGRAM.mrs
+    path: ./rule-sets/site-telegram.mrs
+    interval: 86400
+    proxy: DIRECT
+  site-ru:
+    type: http
+    behavior: domain
+    format: mrs
+    url: https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_RU.mrs
+    path: ./rule-sets/site-ru.mrs
+    interval: 86400
+    proxy: DIRECT
+  site-microsoft:
+    type: http
+    behavior: domain
+    format: mrs
+    url: https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_MICROSOFT.mrs
+    path: ./rule-sets/site-microsoft.mrs
+    interval: 86400
+    proxy: DIRECT
+  site-apple:
+    type: http
+    behavior: domain
+    format: mrs
+    url: https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_APPLE.mrs
+    path: ./rule-sets/site-apple.mrs
+    interval: 86400
+    proxy: DIRECT
+  site-epicgames:
+    type: http
+    behavior: domain
+    format: mrs
+    url: https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_EPICGAMES.mrs
+    path: ./rule-sets/site-epicgames.mrs
+    interval: 86400
+    proxy: DIRECT
+  site-riot:
+    type: http
+    behavior: domain
+    format: mrs
+    url: https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_RIOT.mrs
+    path: ./rule-sets/site-riot.mrs
+    interval: 86400
+    proxy: DIRECT
+  site-escapefromtarkov:
+    type: http
+    behavior: domain
+    format: mrs
+    url: https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_ESCAPEFROMTARKOV.mrs
+    path: ./rule-sets/site-escapefromtarkov.mrs
+    interval: 86400
+    proxy: DIRECT
+  site-steam:
+    type: http
+    behavior: domain
+    format: mrs
+    url: https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_STEAM.mrs
+    path: ./rule-sets/site-steam.mrs
+    interval: 86400
+    proxy: DIRECT
+  site-twitch:
+    type: http
+    behavior: domain
+    format: mrs
+    url: https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_TWITCH.mrs
+    path: ./rule-sets/site-twitch.mrs
+    interval: 86400
+    proxy: DIRECT
+  site-pinterest:
+    type: http
+    behavior: domain
+    format: mrs
+    url: https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_PINTEREST.mrs
+    path: ./rule-sets/site-pinterest.mrs
+    interval: 86400
+    proxy: DIRECT
+  site-faceit:
+    type: http
+    behavior: domain
+    format: mrs
+    url: https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_FACEIT.mrs
+    path: ./rule-sets/site-faceit.mrs
+    interval: 86400
+    proxy: DIRECT
+  ip-ru:
+    type: http
+    behavior: ipcidr
+    format: mrs
+    url: https://raw.githubusercontent.com/SpeedeMiner/Geoip-ru-server/cdn/geoip_RU.mrs
+    path: ./rule-sets/ip-ru.mrs
+    interval: 86400
+    proxy: DIRECT
+rules:
+- RULE-SET,site-block,REJECT
+- RULE-SET,site-win-spy,REJECT
+- IP-CIDR,5.101.40.41/32,REJECT
+- IP-CIDR,34.160.111.145/32,REJECT
+- IP-CIDR,46.165.199.7/32,REJECT
+- IP-CIDR,52.211.36.82/32,REJECT
+- IP-CIDR,90.156.232.26/32,REJECT
+- IP-CIDR,185.16.148.93/32,REJECT
+- IP-CIDR,216.239.32.223/32,REJECT
+- RULE-SET,site-google-play,PROXY
+- RULE-SET,site-github,PROXY
+- RULE-SET,site-twitch-ads,PROXY
+- RULE-SET,site-youtube,PROXY
+- RULE-SET,site-telegram,PROXY
+- DOMAIN,discord-attachments-uploads-prd.storage.googleapis.com,PROXY
+- DOMAIN-SUFFIX,4pda.to,PROXY
+- IP-CIDR,162.254.192.0/21,PROXY
+- IP-CIDR,155.133.224.0/19,PROXY
+- IP-CIDR,103.28.54.0/24,PROXY
+- IP-CIDR,103.10.124.0/23,PROXY
+- IP-CIDR,205.196.6.149/32,PROXY
+- IP-CIDR,45.121.184.6/32,PROXY
+- IP-CIDR,146.66.152.36/32,PROXY
+- IP-CIDR,104.18.29.123/32,PROXY
+- IP-CIDR,150.171.109.51/32,PROXY
+- IP-CIDR,143.244.45.177/32,PROXY
+- IP-CIDR,31.131.253.250/32,PROXY
+- RULE-SET,site-ru,DIRECT
+- RULE-SET,site-microsoft,DIRECT
+- RULE-SET,site-apple,DIRECT
+- RULE-SET,site-epicgames,DIRECT
+- RULE-SET,site-riot,DIRECT
+- RULE-SET,site-escapefromtarkov,DIRECT
+- RULE-SET,site-steam,DIRECT
+- RULE-SET,site-twitch,DIRECT
+- RULE-SET,site-pinterest,DIRECT
+- RULE-SET,site-faceit,DIRECT
+- GEOIP,PRIVATE,DIRECT,no-resolve
+- RULE-SET,ip-ru,DIRECT
+- MATCH,PROXY

@@ -1,0 +1,31 @@
+{
+  "mihomo": {
+    "url": "https://github.com/MetaCubeX/mihomo/releases/download/v1.19.34/mihomo-linux-amd64-v1-v1.19.34.gz",
+    "sha256": "0c07340a01408d033dda4088ea2a4c1e4d82aeed7b2f84f7c046e93b6ff3290c",
+    "format": "gzip"
+  },
+  "sing-box-1.12": {
+    "url": "https://github.com/SagerNet/sing-box/releases/download/v1.12.24/sing-box-1.12.24-linux-amd64.tar.gz",
+    "sha256": "447d64c223808420e8ed2778d486239d374eb8d64d8e7d30c8fc536566be74b5",
+    "format": "tar",
+    "member": "sing-box-1.12.24-linux-amd64/sing-box"
+  },
+  "sing-box-1.13": {
+    "url": "https://github.com/SagerNet/sing-box/releases/download/v1.13.13/sing-box-1.13.13-linux-amd64.tar.gz",
+    "sha256": "bb99cabf47694625db421ee17898f36cdc1f9c2cb5decf65b12bac8d8437e842",
+    "format": "tar",
+    "member": "sing-box-1.13.13-linux-amd64/sing-box"
+  },
+  "xray": {
+    "url": "https://github.com/XTLS/Xray-core/releases/download/v26.11.9/Xray-linux-64.zip",
+    "sha256": "b651f7e1d9966ee2c1b1ee1bf8b52c72771824d3065dce96bbc8bcc19ed95f82",
+    "format": "zip",
+    "member": "xray"
+  },
+  "v2ray": {
+    "url": "https://github.com/v2fly/v2ray-core/releases/download/v5.53.0/v2ray-linux-64.zip",
+    "sha256": "6bbb8aee65a57d0b12599b4b7c842b3ad0daca4436e661d94015c447cb31b4fa",
+    "format": "zip",
+    "member": "v2ray"
+  }
+}

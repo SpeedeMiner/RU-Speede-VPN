@@ -1,0 +1,29 @@
+name: Validate client profiles
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Install test dependencies
+        run: |
+          python3 -m venv .venv
+          .venv/bin/python -m pip install -r requirements-dev.txt
+      - name: Test scripts and check committed output
+        run: |
+          .venv/bin/python -m pytest -q
+          .venv/bin/python scripts/update_happ_profile.py --check
+          .venv/bin/python scripts/render_profiles.py --check
+      - name: Verify with SHA-256-pinned client binaries
+        run: .venv/bin/python scripts/validate_clients.py

@@ -1,0 +1,546 @@
+{
+  "dns": {
+    "servers": [
+      {
+        "type": "hosts",
+        "tag": "hosts",
+        "predefined": {
+          "lkfl2.nalog.ru": [
+            "213.24.64.175"
+          ],
+          "lknpd.nalog.ru": [
+            "213.24.64.181"
+          ]
+        }
+      },
+      {
+        "type": "hosts",
+        "tag": "bootstrap",
+        "predefined": {
+          "dns.google": [
+            "8.8.8.8"
+          ],
+          "common.dot.dns.yandex.net": [
+            "77.88.8.8"
+          ]
+        }
+      },
+      {
+        "type": "https",
+        "tag": "remote",
+        "server": "dns.google",
+        "path": "/dns-query",
+        "detour": "proxy",
+        "domain_resolver": "bootstrap"
+      },
+      {
+        "type": "https",
+        "tag": "domestic",
+        "server": "common.dot.dns.yandex.net",
+        "path": "/dns-query",
+        "domain_resolver": "bootstrap"
+      }
+    ],
+    "rules": [
+      {
+        "domain": [
+          "lkfl2.nalog.ru",
+          "lknpd.nalog.ru"
+        ],
+        "action": "route",
+        "server": "hosts"
+      },
+      {
+        "rule_set": [
+          "site-block"
+        ],
+        "action": "reject"
+      },
+      {
+        "rule_set": [
+          "site-win-spy"
+        ],
+        "action": "reject"
+      },
+      {
+        "rule_set": [
+          "site-google-play"
+        ],
+        "action": "route",
+        "server": "remote"
+      },
+      {
+        "rule_set": [
+          "site-github"
+        ],
+        "action": "route",
+        "server": "remote"
+      },
+      {
+        "rule_set": [
+          "site-twitch-ads"
+        ],
+        "action": "route",
+        "server": "remote"
+      },
+      {
+        "rule_set": [
+          "site-youtube"
+        ],
+        "action": "route",
+        "server": "remote"
+      },
+      {
+        "rule_set": [
+          "site-telegram"
+        ],
+        "action": "route",
+        "server": "remote"
+      },
+      {
+        "domain": [
+          "discord-attachments-uploads-prd.storage.googleapis.com"
+        ],
+        "action": "route",
+        "server": "remote"
+      },
+      {
+        "domain_suffix": [
+          "4pda.to"
+        ],
+        "action": "route",
+        "server": "remote"
+      },
+      {
+        "rule_set": [
+          "site-ru"
+        ],
+        "action": "route",
+        "server": "domestic"
+      },
+      {
+        "rule_set": [
+          "site-microsoft"
+        ],
+        "action": "route",
+        "server": "domestic"
+      },
+      {
+        "rule_set": [
+          "site-apple"
+        ],
+        "action": "route",
+        "server": "domestic"
+      },
+      {
+        "rule_set": [
+          "site-epicgames"
+        ],
+        "action": "route",
+        "server": "domestic"
+      },
+      {
+        "rule_set": [
+          "site-riot"
+        ],
+        "action": "route",
+        "server": "domestic"
+      },
+      {
+        "rule_set": [
+          "site-escapefromtarkov"
+        ],
+        "action": "route",
+        "server": "domestic"
+      },
+      {
+        "rule_set": [
+          "site-steam"
+        ],
+        "action": "route",
+        "server": "domestic"
+      },
+      {
+        "rule_set": [
+          "site-twitch"
+        ],
+        "action": "route",
+        "server": "domestic"
+      },
+      {
+        "rule_set": [
+          "site-pinterest"
+        ],
+        "action": "route",
+        "server": "domestic"
+      },
+      {
+        "rule_set": [
+          "site-faceit"
+        ],
+        "action": "route",
+        "server": "domestic"
+      }
+    ],
+    "final": "remote"
+  },
+  "inbounds": [
+    {
+      "type": "mixed",
+      "tag": "mixed-in",
+      "listen": "127.0.0.1",
+      "listen_port": 2080
+    }
+  ],
+  "outbounds": [
+    {
+      "type": "socks",
+      "tag": "proxy",
+      "server": "127.0.0.1",
+      "server_port": 1081
+    },
+    {
+      "type": "direct",
+      "tag": "direct"
+    }
+  ],
+  "route": {
+    "rules": [
+      {
+        "action": "sniff"
+      },
+      {
+        "protocol": "dns",
+        "action": "hijack-dns"
+      },
+      {
+        "rule_set": [
+          "site-block"
+        ],
+        "action": "reject"
+      },
+      {
+        "rule_set": [
+          "site-win-spy"
+        ],
+        "action": "reject"
+      },
+      {
+        "action": "resolve"
+      },
+      {
+        "ip_cidr": [
+          "5.101.40.41/32",
+          "34.160.111.145/32",
+          "46.165.199.7/32",
+          "52.211.36.82/32",
+          "90.156.232.26/32",
+          "185.16.148.93/32",
+          "216.239.32.223/32"
+        ],
+        "action": "reject"
+      },
+      {
+        "rule_set": [
+          "site-google-play"
+        ],
+        "action": "route",
+        "outbound": "proxy"
+      },
+      {
+        "rule_set": [
+          "site-github"
+        ],
+        "action": "route",
+        "outbound": "proxy"
+      },
+      {
+        "rule_set": [
+          "site-twitch-ads"
+        ],
+        "action": "route",
+        "outbound": "proxy"
+      },
+      {
+        "rule_set": [
+          "site-youtube"
+        ],
+        "action": "route",
+        "outbound": "proxy"
+      },
+      {
+        "rule_set": [
+          "site-telegram"
+        ],
+        "action": "route",
+        "outbound": "proxy"
+      },
+      {
+        "domain": [
+          "discord-attachments-uploads-prd.storage.googleapis.com"
+        ],
+        "action": "route",
+        "outbound": "proxy"
+      },
+      {
+        "domain_suffix": [
+          "4pda.to"
+        ],
+        "action": "route",
+        "outbound": "proxy"
+      },
+      {
+        "ip_cidr": [
+          "162.254.192.0/21",
+          "155.133.224.0/19",
+          "103.28.54.0/24",
+          "103.10.124.0/23",
+          "205.196.6.149/32",
+          "45.121.184.6/32",
+          "146.66.152.36/32",
+          "104.18.29.123/32",
+          "150.171.109.51/32",
+          "143.244.45.177/32",
+          "31.131.253.250/32"
+        ],
+        "action": "route",
+        "outbound": "proxy"
+      },
+      {
+        "rule_set": [
+          "site-ru"
+        ],
+        "action": "route",
+        "outbound": "direct"
+      },
+      {
+        "rule_set": [
+          "site-microsoft"
+        ],
+        "action": "route",
+        "outbound": "direct"
+      },
+      {
+        "rule_set": [
+          "site-apple"
+        ],
+        "action": "route",
+        "outbound": "direct"
+      },
+      {
+        "rule_set": [
+          "site-epicgames"
+        ],
+        "action": "route",
+        "outbound": "direct"
+      },
+      {
+        "rule_set": [
+          "site-riot"
+        ],
+        "action": "route",
+        "outbound": "direct"
+      },
+      {
+        "rule_set": [
+          "site-escapefromtarkov"
+        ],
+        "action": "route",
+        "outbound": "direct"
+      },
+      {
+        "rule_set": [
+          "site-steam"
+        ],
+        "action": "route",
+        "outbound": "direct"
+      },
+      {
+        "rule_set": [
+          "site-twitch"
+        ],
+        "action": "route",
+        "outbound": "direct"
+      },
+      {
+        "rule_set": [
+          "site-pinterest"
+        ],
+        "action": "route",
+        "outbound": "direct"
+      },
+      {
+        "rule_set": [
+          "site-faceit"
+        ],
+        "action": "route",
+        "outbound": "direct"
+      },
+      {
+        "ip_is_private": true,
+        "action": "route",
+        "outbound": "direct"
+      },
+      {
+        "rule_set": [
+          "ip-ru"
+        ],
+        "action": "route",
+        "outbound": "direct"
+      }
+    ],
+    "rule_set": [
+      {
+        "type": "remote",
+        "tag": "site-block",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_BLOCK.srs",
+        "download_detour": "direct",
+        "update_interval": "1d"
+      },
+      {
+        "type": "remote",
+        "tag": "site-win-spy",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_WIN-SPY.srs",
+        "download_detour": "direct",
+        "update_interval": "1d"
+      },
+      {
+        "type": "remote",
+        "tag": "site-google-play",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_GOOGLE-PLAY.srs",
+        "download_detour": "direct",
+        "update_interval": "1d"
+      },
+      {
+        "type": "remote",
+        "tag": "site-github",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_GITHUB.srs",
+        "download_detour": "direct",
+        "update_interval": "1d"
+      },
+      {
+        "type": "remote",
+        "tag": "site-twitch-ads",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_TWITCH-ADS.srs",
+        "download_detour": "direct",
+        "update_interval": "1d"
+      },
+      {
+        "type": "remote",
+        "tag": "site-youtube",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_YOUTUBE.srs",
+        "download_detour": "direct",
+        "update_interval": "1d"
+      },
+      {
+        "type": "remote",
+        "tag": "site-telegram",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_TELEGRAM.srs",
+        "download_detour": "direct",
+        "update_interval": "1d"
+      },
+      {
+        "type": "remote",
+        "tag": "site-ru",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_RU.srs",
+        "download_detour": "direct",
+        "update_interval": "1d"
+      },
+      {
+        "type": "remote",
+        "tag": "site-microsoft",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_MICROSOFT.srs",
+        "download_detour": "direct",
+        "update_interval": "1d"
+      },
+      {
+        "type": "remote",
+        "tag": "site-apple",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_APPLE.srs",
+        "download_detour": "direct",
+        "update_interval": "1d"
+      },
+      {
+        "type": "remote",
+        "tag": "site-epicgames",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_EPICGAMES.srs",
+        "download_detour": "direct",
+        "update_interval": "1d"
+      },
+      {
+        "type": "remote",
+        "tag": "site-riot",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_RIOT.srs",
+        "download_detour": "direct",
+        "update_interval": "1d"
+      },
+      {
+        "type": "remote",
+        "tag": "site-escapefromtarkov",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_ESCAPEFROMTARKOV.srs",
+        "download_detour": "direct",
+        "update_interval": "1d"
+      },
+      {
+        "type": "remote",
+        "tag": "site-steam",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_STEAM.srs",
+        "download_detour": "direct",
+        "update_interval": "1d"
+      },
+      {
+        "type": "remote",
+        "tag": "site-twitch",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_TWITCH.srs",
+        "download_detour": "direct",
+        "update_interval": "1d"
+      },
+      {
+        "type": "remote",
+        "tag": "site-pinterest",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_PINTEREST.srs",
+        "download_detour": "direct",
+        "update_interval": "1d"
+      },
+      {
+        "type": "remote",
+        "tag": "site-faceit",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/SpeedeMiner/Geosite-ru-light/release/geosite_FACEIT.srs",
+        "download_detour": "direct",
+        "update_interval": "1d"
+      },
+      {
+        "type": "remote",
+        "tag": "ip-ru",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/SpeedeMiner/Geoip-ru-server/cdn/geoip_RU.srs",
+        "download_detour": "direct",
+        "update_interval": "1d"
+      }
+    ],
+    "final": "proxy",
+    "default_domain_resolver": "domestic"
+  },
+  "experimental": {
+    "cache_file": {
+      "enabled": true
+    }
+  }
+}

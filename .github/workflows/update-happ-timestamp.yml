@@ -1,0 +1,41 @@
+name: Update Happ timestamp
+
+on:
+  schedule:
+    - cron: '30 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-happ-main
+  cancel-in-progress: false
+
+jobs:
+  update:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: main
+      - name: Regenerate, verify and commit to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          paths=(happ/ru-speede-vpn.json happ/happ-routing-link.txt README.md)
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git reset --hard FETCH_HEAD
+            python3 scripts/update_happ_profile.py
+            python3 scripts/update_happ_profile.py --check
+            git add -- "${paths[@]}"
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m 'chore(happ): refresh profile timestamp and import link'
+            if git push origin HEAD:main; then exit 0; fi
+          done
+          exit 1
