@@ -10,6 +10,8 @@
 Если GitHub не открывает ссылку, скопируйте её из [happ-routing-link.txt](happ/happ-routing-link.txt) и откройте на устройстве с Happ.
 <!-- END_HAPP_LINK -->
 
+Скачать файл по прямой ссылке: [happ-routing-link.txt (jsDelivr)](https://cdn.jsdelivr.net/gh/SpeedeMiner/RU-Speede-VPN@main/happ/happ-routing-link.txt).
+
 Профиль JSON — [GitHub Raw](https://raw.githubusercontent.com/SpeedeMiner/RU-Speede-VPN/main/happ/ru-speede-vpn.json) · [jsDelivr](https://cdn.jsdelivr.net/gh/SpeedeMiner/RU-Speede-VPN@main/happ/ru-speede-vpn.json). Для самой свежей версии используйте GitHub Raw: jsDelivr может отдавать кэш. После импорта выберите своё уже добавленное подключение в Happ.
 
 ## Остальные клиенты
